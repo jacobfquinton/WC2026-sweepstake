@@ -365,11 +365,11 @@ const BOOT_PLAYERS = [
   "Florian Wirtz","Cody Gakpo","Ousmane Dembélé",
   "Marcus Rashford","Mohamed Salah","Michael Olise","Bradley Barcola",
   "Lautaro Martínez","Julián Álvarez","Memphis Depay",
-  "Neymar","Jude Bellingham","Phil Foden",
+  "Neymar","Jude Bellingham",
   "Ferran Torres","Richarlison","Rodrygo","Darwin Núñez",
   "Luis Díaz","Kai Havertz","Bruno Fernandes","Álvaro Morata",
   "Nick Woltemade","Son Heung-min","Jamal Musiala","Dani Olmo",
-  "Endrick","Mikel Oyarzabal","Désiré Doué","Rayan Cherki",
+  "Endrick","Mikel Oyarzabal","Désiré Doué","Rayan Cherki","Noni Madueke","Ollie Watkins",
   "Eberechi Eze","Pedro Neto","Leroy Sané","Serge Gnabry"
 ];
 
@@ -422,15 +422,16 @@ function fbListen(path, cb) {
 // ── init ──────────────────────────────────────────────────────────────────
 async function init() {
   // load full DB snapshot once, then listen for results changes (for live leaderboard)
-  const [pins, picks, bonuses, results, paid, ko] = await Promise.all([
-    fbGet('pins'), fbGet('picks'), fbGet('bonuses'), fbGet('results'), fbGet('paid'), fbGet('knockout')
+  const [pins, picks, bonuses, results, paid, ko, adminMsg] = await Promise.all([
+    fbGet('pins'), fbGet('picks'), fbGet('bonuses'), fbGet('results'), fbGet('paid'), fbGet('knockout'), fbGet('adminMessage')
   ]);
-  DB.pins     = pins    || {};
-  DB.picks    = picks   || {};
-  DB.bonuses  = bonuses || {};
-  DB.results  = results || {};
-  DB.paid     = paid    || {};
-  DB.knockout = ko      || {};
+  DB.pins         = pins    || {};
+  DB.picks        = picks   || {};
+  DB.bonuses      = bonuses || {};
+  DB.results      = results || {};
+  DB.paid         = paid    || {};
+  DB.knockout     = ko      || {};
+  DB.adminMessage = adminMsg || '';
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────
@@ -1230,7 +1231,15 @@ function drawLeaderboard() {
     return b.correct - a.correct;                                       // 4. most correct picks
   });
 
-  let html = `<div class="lb-stats">
+  // admin message banner
+  const adminMsg = DB.adminMessage || '';
+  let html = '';
+  if(adminMsg) {
+    html += `<div style="background:var(--pitch-dark);color:#fff;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <span style="font-size:13px;font-weight:500">${adminMsg}</span>
+    </div>`;
+  }
+  html += `<div class="lb-stats">
     <div class="stat-card"><div class="stat-val">${scored}/${FIXTURES.length}</div><div class="stat-lbl">Results in</div></div>
     <div class="stat-card"><div class="stat-val">£${pot}</div><div class="stat-lbl">Pot</div></div>
     <div class="stat-card"><div class="stat-val">${paidPlayers.length}</div><div class="stat-lbl">Paid in</div></div>
@@ -1319,6 +1328,18 @@ function renderAdmin() {
   }
 
   html += `</div></div></div>`;
+
+  // admin message
+  html += `<div class="card">
+    <div class="card-header"><div class="card-title">📢 Leaderboard message</div></div>
+    <div class="card-body">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Shows as a banner above the leaderboard. Use for live game links, announcements etc. Leave blank to hide.</div>
+      <input class="admin-input" type="text" placeholder="e.g. ⚽ Live now — England vs France → bbc.co.uk/sport"
+        value="${DB.adminMessage||''}"
+        onchange="saveAdminMessage(this.value)"
+        style="width:100%;margin-bottom:6px">
+    </div>
+  </div>`;
 
   // payment tracker
   html += `<div class="card">
@@ -1719,6 +1740,11 @@ window.saveKoResult = async function(roundKey, idx, sel) {
   await fbSet('knockout/_results/'+roundKey+'/'+idx, val||null);
 };
 
+window.saveAdminMessage = async function(val) {
+  DB.adminMessage = val;
+  await fbSet('adminMessage', val || null);
+};
+
 window.adminResult = async function(fxId, sel) {
   const val = sel.value;
   sel.className = 'admin-select' + (val?' has-result':'');
@@ -1746,15 +1772,16 @@ window.refreshAdmin = async function() {
   const btn = event.target;
   btn.textContent = '↻ Loading…';
   btn.disabled = true;
-  const [pins, picks, bonuses, results, paid, ko] = await Promise.all([
-    fbGet('pins'), fbGet('picks'), fbGet('bonuses'), fbGet('results'), fbGet('paid'), fbGet('knockout')
+  const [pins, picks, bonuses, results, paid, ko, adminMsg] = await Promise.all([
+    fbGet('pins'), fbGet('picks'), fbGet('bonuses'), fbGet('results'), fbGet('paid'), fbGet('knockout'), fbGet('adminMessage')
   ]);
-  DB.pins     = pins    || {};
-  DB.picks    = picks   || {};
-  DB.bonuses  = bonuses || {};
-  DB.results  = results || {};
-  DB.paid     = paid    || {};
-  DB.knockout = ko      || {};
+  DB.pins         = pins    || {};
+  DB.picks        = picks   || {};
+  DB.bonuses      = bonuses || {};
+  DB.results      = results || {};
+  DB.paid         = paid    || {};
+  DB.knockout     = ko      || {};
+  DB.adminMessage = adminMsg || '';
   renderAdmin();
 };
 
