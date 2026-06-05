@@ -1555,7 +1555,10 @@ function renderAdmin() {
       const hasWinner = !!pb.winner;
       const hasBall = !!pb.ball;
       // wildcard completion - needs 8 valid picks
-      const playerWildcards = ((DB.knockout||{})[displayName]||{})._wildcards || {};
+      const playerName2 = key.replace(/_/g,' ');
+      const wcFromKey = ((DB.knockout||{})[key]||{})._wildcards || {};
+      const wcFromName = ((DB.knockout||{})[playerName2]||{})._wildcards || {};
+      const playerWildcards = Object.assign({}, wcFromKey, wcFromName);
       // use simulateGroups to get 3rd place teams for this player
       const playerName = key.replace(/_/g,' ');
       const playerPicks = DB.picks[playerName] || DB.picks[key] || {};
